@@ -1,0 +1,54 @@
+{
+  "recipes": [
+    {
+      "id": "recipe-1",
+      "title": "Сырники",
+      "category": "Завтрак",
+      "servings": 2,
+      "cookingTime": 20,
+      "ingredients": ["творог", "яйцо", "мука", "сахар"],
+      "instructions": "Смешать ингредиенты, сформировать сырники и обжарить.",
+      "favorite": true
+    },
+    {
+      "id": "recipe-2",
+      "title": "Овощной суп",
+      "category": "Обед",
+      "servings": 4,
+      "cookingTime": 35,
+      "ingredients": ["картофель", "морковь", "лук", "вода"],
+      "instructions": "Нарезать овощи и варить до готовности.",
+      "favorite": false
+    },
+    {
+      "id": "recipe-3",
+      "title": "Яблочный десерт",
+      "category": "Десерт",
+      "servings": 3,
+      "cookingTime": 25,
+      "ingredients": ["яблоки", "корица", "мёд"],
+      "instructions": "Нарезать яблоки, добавить корицу и запечь.",
+      "favorite": false
+    },
+    {
+      "id": "recipe-4",
+      "title": "Паста Карбонара",
+      "category": "Ужин",
+      "servings": 2,
+      "cookingTime": 25,
+      "ingredients": ["спагетти", "бекон", "яичные желтки", "пармезан", "чёрный перец"],
+      "instructions": "Отварить пасту, обжарить бекон и смешать с соусом из желтков и сыра.",
+      "favorite": true
+    },
+    {
+      "id": "recipe-5",
+      "title": "Овсяная каша с ягодами",
+      "category": "Завтрак",
+      "servings": 1,
+      "cookingTime": 10,
+      "ingredients": ["овсяные хлопья", "молоко", "черника", "мёд"],
+      "instructions": "Сварить хлопья на молоке и украсить свежими ягодами.",
+      "favorite": false
+    }
+  ]
+}

@@ -9,15 +9,13 @@ export interface Recipe {
   ingredients: string[];
   instructions: string;
   favorite: boolean;
-  imageUrl?: string;
 }
 
 export type RecipeDraft = Omit<Recipe, "id" | "favorite">;
+export type NewRecipe = Omit<Recipe, "id">;
 
 export type RecipeFilter = {
   query: string;
   category: Category | "Все";
   favoritesOnly: boolean;
-  max30Min: boolean;
-  sortBy: "none" | "asc" | "desc";
 };

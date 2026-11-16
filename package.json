@@ -5,12 +5,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "api": "json-server --watch db.json --port 3001",
+    "serve": "npx serve ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "json-server": "^0.17.4",
     "typescript": "^5.0.0"
   }
 }

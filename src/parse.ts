@@ -1,10 +1,10 @@
 import type { Recipe } from "./types.js";
 
-const STORAGE_KEY = "culinary-recipes";
-
 function isRecipe(value: unknown): value is Recipe {
   if (typeof value !== "object" || value === null) return false;
+
   const item = value as Record<string, unknown>;
+
   return (
     typeof item.id === "string" &&
     typeof item.title === "string" &&
@@ -18,20 +18,9 @@ function isRecipe(value: unknown): value is Recipe {
   );
 }
 
-export function loadRecipes(): Recipe[] | null {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw === null) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed) || !parsed.every(isRecipe)) {
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
+export function parseRecipes(data: unknown): Recipe[] {
+  if (!Array.isArray(data) || !data.every(isRecipe)) {
+    throw new Error("Сервер вернул данные неожиданного формата");
   }
-}
-
-export function saveRecipes(recipes: Recipe[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+  return data;
 }
