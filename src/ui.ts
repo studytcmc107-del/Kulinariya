@@ -15,6 +15,7 @@ export const recipeForm = requireElement<HTMLFormElement>("#recipe-form");
 export const recipeList = requireElement<HTMLDivElement>("#recipe-list");
 export const formMessage = requireElement<HTMLParagraphElement>("#form-message");
 export const resultsCount = requireElement<HTMLParagraphElement>("#results-count");
+export const retryButton = requireElement<HTMLButtonElement>("#retry-button");
 
 export function renderMessage(text: string): void {
   recipeList.innerHTML = "";

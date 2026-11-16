@@ -1,20 +1,29 @@
-import { fetchRecipes } from "./api.js";
-import { createRecipe, deleteRecipe, filterRecipes, toggleFavorite } from "./recipes.js";
+import { createRecipeOnServer, deleteRecipeOnServer, fetchRecipes, setFavorite } from "./api.js";
+import { debounce } from "./debounce.js";
+import { isCategory } from "./parse.js";
+import { deleteRecipe, filterRecipes } from "./recipes.js";
+import { withRetry } from "./retry.js";
 import { assertNever, errorMessage } from "./state.js";
-import { searchInput, categoryFilter, favoritesOnly, recipeForm, recipeList, formMessage, renderMessage, renderRecipes } from "./ui.js";
+import { searchInput, categoryFilter, favoritesOnly, recipeForm, recipeList, formMessage, retryButton, renderMessage, renderRecipes } from "./ui.js";
 let state = { status: "loading" };
 function setState(next) {
     state = next;
     render();
 }
+function updateRecipes(change) {
+    if (state.status !== "success")
+        return;
+    setState({ status: "success", recipes: change(state.recipes) });
+}
 function getFilter() {
     return {
-        query: searchInput.value,
-        category: categoryFilter.value,
+        query: "",
+        category: isCategory(categoryFilter.value) ? categoryFilter.value : "Все",
         favoritesOnly: favoritesOnly.checked
     };
 }
 function render() {
+    retryButton.hidden = state.status !== "error";
     switch (state.status) {
         case "loading":
             renderMessage("Загружаем рецепты...");
@@ -29,33 +38,54 @@ function render() {
             assertNever(state);
     }
 }
-searchInput.addEventListener("input", render);
+let controller;
+async function search() {
+    controller?.abort();
+    controller = new AbortController();
+    const { signal } = controller;
+    try {
+        const recipes = await fetchRecipes(searchInput.value, signal);
+        setState({ status: "success", recipes });
+    }
+    catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+        }
+        setState({ status: "error", message: errorMessage(error) });
+    }
+}
+searchInput.addEventListener("input", debounce(() => void search(), 300));
 categoryFilter.addEventListener("change", render);
 favoritesOnly.addEventListener("change", render);
-recipeList.addEventListener("click", (event) => {
-    if (state.status !== "success")
-        return;
+retryButton.addEventListener("click", () => void init());
+recipeList.addEventListener("click", async (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement))
         return;
     const button = target.closest("button[data-action]");
-    if (!button)
+    const id = button?.dataset.id;
+    const action = button?.dataset.action;
+    if (!id || !action || state.status !== "success")
         return;
-    const id = button.dataset.id;
-    const action = button.dataset.action;
-    if (!id)
-        return;
-    if (action === "favorite") {
-        setState({ status: "success", recipes: toggleFavorite(state.recipes, id) });
+    try {
+        if (action === "favorite") {
+            const current = state.recipes.find((recipe) => recipe.id === id);
+            if (!current)
+                return;
+            const updated = await setFavorite(id, !current.favorite);
+            updateRecipes((list) => list.map((recipe) => (recipe.id === updated.id ? updated : recipe)));
+        }
+        else if (action === "delete") {
+            await deleteRecipeOnServer(id);
+            updateRecipes((list) => deleteRecipe(list, id));
+        }
     }
-    else if (action === "delete") {
-        setState({ status: "success", recipes: deleteRecipe(state.recipes, id) });
+    catch (error) {
+        formMessage.textContent = `Не удалось выполнить действие: ${errorMessage(error)}`;
     }
 });
-recipeForm.addEventListener("submit", (event) => {
+recipeForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (state.status !== "success")
-        return;
     const titleInput = document.querySelector("#recipe-title");
     const categoryInput = document.querySelector("#recipe-category");
     const servingsInput = document.querySelector("#recipe-servings");
@@ -68,6 +98,7 @@ recipeForm.addEventListener("submit", (event) => {
         return;
     }
     const title = titleInput.value.trim();
+    const category = categoryInput.value;
     const servings = Number(servingsInput.value);
     const cookingTime = Number(timeInput.value);
     const ingredients = ingredientsInput.value
@@ -77,6 +108,10 @@ recipeForm.addEventListener("submit", (event) => {
     const instructions = instructionsInput.value.trim();
     if (!title || !instructions || ingredients.length === 0) {
         formMessage.textContent = "Заполните все поля формы.";
+        return;
+    }
+    if (!isCategory(category)) {
+        formMessage.textContent = "Выберите категорию из списка.";
         return;
     }
     if (!Number.isFinite(servings) || servings < 1 || servings > 30) {
@@ -89,23 +124,27 @@ recipeForm.addEventListener("submit", (event) => {
     }
     const draft = {
         title,
-        category: categoryInput.value,
+        category,
         servings,
         cookingTime,
         ingredients,
         instructions
     };
-    setState({
-        status: "success",
-        recipes: [createRecipe(draft), ...state.recipes]
-    });
-    recipeForm.reset();
-    formMessage.textContent = "Рецепт добавлен.";
+    const newRecipe = { ...draft, favorite: false };
+    try {
+        const created = await createRecipeOnServer(newRecipe);
+        updateRecipes((list) => [created, ...list]);
+        recipeForm.reset();
+        formMessage.textContent = "Рецепт добавлен.";
+    }
+    catch (error) {
+        formMessage.textContent = `Не удалось сохранить рецепт: ${errorMessage(error)}`;
+    }
 });
 async function init() {
     setState({ status: "loading" });
     try {
-        const recipes = await fetchRecipes();
+        const recipes = await withRetry(() => fetchRecipes(), 3, 1000);
         setState({ status: "success", recipes });
     }
     catch (error) {

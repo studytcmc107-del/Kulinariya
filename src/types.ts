@@ -1,4 +1,5 @@
-export type Category = "Завтрак" | "Обед" | "Ужин" | "Десерт";
+export const CATEGORIES = ["Завтрак", "Обед", "Ужин", "Десерт"] as const;
+export type Category = (typeof CATEGORIES)[number];
 
 export interface Recipe {
   readonly id: string;
